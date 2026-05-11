@@ -365,12 +365,41 @@ const paidCount = countryPosts.filter((post) => post.data.tier === 'paid').lengt
         font-size: 15px;
       }
 
-      .expand-tip {
+      .post-card-actions {
         margin-top: auto;
         padding-top: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .expand-tip {
         font-size: 13px;
         color: var(--accent);
         font-weight: 700;
+      }
+
+      .post-direct-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line-strong);
+        background: var(--panel-strong);
+        color: var(--text);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+        transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+      }
+
+      .post-direct-link:hover {
+        transform: translateY(-1px);
+        background: var(--accent-soft);
+        border-color: var(--line-strong);
       }
 
       .post-body {
@@ -691,14 +720,24 @@ const paidCount = countryPosts.filter((post) => post.data.tier === 'paid').lengt
                     {post.data.summary}
                   </div>
 
-                  <div class="expand-tip">
-                    点击展开阅读 {
-                      post.data.tier === 'free'
-                        ? '全文'
-                        : hasPaidAccess
+                  <div class="post-card-actions">
+                    <span class="expand-tip">
+                      点击展开阅读 {
+                        post.data.tier === 'free'
                           ? '全文'
-                          : '摘要'
-                    } ↓
+                          : hasPaidAccess
+                            ? '全文'
+                            : '摘要'
+                      } ↓
+                    </span>
+
+                    <a
+                      class="post-direct-link"
+                      href={`/posts/${post.data.slug}`}
+                      onclick="event.stopPropagation()"
+                    >
+                      独立阅读 →
+                    </a>
                   </div>
                 </div>
               </div>
@@ -767,7 +806,8 @@ const paidCount = countryPosts.filter((post) => post.data.tier === 'paid').lengt
         <ul>
           {countryPosts.map((post) => (
             <li>
-              <a href={`#${post.data.slug}`}>{post.data.title}</a>
+              
+              <a href={`/posts/${post.data.slug}`}>{post.data.title}</a>
             </li>
           ))}
         </ul>
@@ -780,6 +820,27 @@ const paidCount = countryPosts.filter((post) => post.data.tier === 'paid').lengt
       const buttons = document.querySelectorAll('.filter-btn');
       const cards = document.querySelectorAll('.post-card');
       const collapseButtons = document.querySelectorAll('.post-collapse-btn');
+
+      const openCardFromHash = () => {
+        const hash = window.location.hash.replace('#', '');
+        if (!hash) return;
+
+        const target = document.getElementById(hash);
+        if (!target) return;
+
+        target.setAttribute('open', '');
+
+        requestAnimationFrame(() => {
+          target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          });
+        });
+      };
+
+      openCardFromHash();
+
+      window.addEventListener('hashchange', openCardFromHash);
 
       buttons.forEach((button) => {
         button.addEventListener('click', () => {

@@ -1,0 +1,474 @@
+---
+import { getCollection, render } from 'astro:content';
+import 'flag-icons/css/flag-icons.min.css';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+
+const allPosts = await getCollection('travel');
+
+const post = allPosts.find((item) => item.data.slug === slug);
+
+if (!post) {
+  return new Response('Not found', { status: 404 });
+}
+
+const { Content } = await render(post);
+
+const currentUser = Astro.locals.user;
+const hasPaidAccess = Astro.locals.hasPaidAccess;
+
+const canReadFull = post.data.tier === 'free' || hasPaidAccess;
+
+const countrySlug = post.data.country.toLowerCase().replaceAll(' ', '-');
+
+const postTitle = post.data.title;
+const postDescription = post.data.summary ?? `${post.data.title} - ${post.data.country} 游记`;
+const coverImage = post.data.cover;
+---
+
+<BaseLayout
+  title={`${postTitle} - 夜色风月`}
+  description={postDescription}
+>
+  <Fragment slot="head">
+    <style>
+      :root {
+        --bg: #f8f3f8;
+        --bg-soft: #fcf7fc;
+        --panel: rgba(255, 255, 255, 0.72);
+        --panel-strong: rgba(255, 255, 255, 0.9);
+
+        --text: #20171f;
+        --muted: #7d6879;
+
+        --line: rgba(80, 42, 72, 0.10);
+        --line-strong: rgba(80, 42, 72, 0.16);
+
+        --accent: #b05c8e;
+        --accent-2: #d88cc8;
+        --accent-soft: rgba(176, 92, 142, 0.10);
+
+        --free-bg: #f3e8f7;
+        --free-text: #7a3d86;
+
+        --paid-bg: #fde7f1;
+        --paid-text: #b13b73;
+
+        --shadow: 0 18px 46px rgba(113, 61, 104, 0.10);
+      }
+
+      :root[data-theme='dark'] {
+        --bg: #0c0b14;
+        --bg-soft: #131222;
+        --panel: rgba(18, 20, 34, 0.78);
+        --panel-strong: rgba(24, 27, 46, 0.92);
+
+        --text: #f7f2ff;
+        --muted: #b8a8d6;
+
+        --line: rgba(120, 104, 255, 0.18);
+        --line-strong: rgba(255, 79, 216, 0.26);
+
+        --accent: #ff4fd8;
+        --accent-2: #6ae2ff;
+        --accent-soft: rgba(255, 79, 216, 0.14);
+
+        --free-bg: rgba(106, 226, 255, 0.14);
+        --free-text: #8beaff;
+
+        --paid-bg: rgba(255, 79, 216, 0.14);
+        --paid-text: #ff8ee7;
+
+        --shadow: 0 18px 52px rgba(0, 0, 0, 0.34);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(255, 79, 216, 0.08), transparent 30%),
+          radial-gradient(circle at top right, rgba(106, 226, 255, 0.08), transparent 26%),
+          radial-gradient(circle at bottom center, rgba(120, 104, 255, 0.08), transparent 36%),
+          var(--bg);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .post-page {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 34px 24px 88px;
+      }
+
+      .breadcrumb {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .breadcrumb a {
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      .breadcrumb a:hover {
+        color: var(--text);
+      }
+
+      .post-shell {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 30px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .post-hero {
+        padding: 28px 30px 26px;
+      }
+
+      .post-cover {
+        width: 100%;
+        aspect-ratio: 16 / 7;
+        border-radius: 24px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.08);
+        margin-bottom: 28px;
+        border: 1px solid var(--line);
+      }
+
+      .post-cover img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .post-kicker {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        color: var(--muted);
+        font-size: 14px;
+        margin-bottom: 14px;
+      }
+
+      .fi {
+        border-radius: 2px;
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+        vertical-align: -1px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .badge.free {
+        background: var(--free-bg);
+        color: var(--free-text);
+      }
+
+      .badge.paid {
+        background: var(--paid-bg);
+        color: var(--paid-text);
+      }
+
+      h1 {
+        margin: 0 0 16px;
+        font-size: clamp(38px, 6vw, 68px);
+        line-height: 1.02;
+        letter-spacing: -0.06em;
+      }
+
+      .post-summary {
+        max-width: 68ch;
+        margin: 0;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.85;
+      }
+
+      .post-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 24px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 16px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 14px;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+
+      .button-primary {
+        background: var(--text);
+        color: var(--bg);
+      }
+
+      .button-secondary {
+        border: 1px solid var(--line-strong);
+        color: var(--text);
+        background: var(--panel-strong);
+      }
+
+      .post-body {
+        padding: 8px 30px 38px;
+      }
+
+      .prose {
+        max-width: 76ch;
+        margin: 0 auto;
+        font-size: 18px;
+        line-height: 2;
+        text-align: justify;
+      }
+
+      .prose :global(h1),
+      .prose :global(h2),
+      .prose :global(h3),
+      .prose :global(h4) {
+        letter-spacing: -0.03em;
+        line-height: 1.2;
+        margin-top: 1.8em;
+        margin-bottom: 0.7em;
+      }
+
+      .prose :global(h2) {
+        font-size: 32px;
+      }
+
+      .prose :global(h3) {
+        font-size: 25px;
+      }
+
+      .prose :global(p) {
+        margin: 1em 0;
+        color: var(--text);
+      }
+
+      .prose :global(ul),
+      .prose :global(ol) {
+        padding-left: 1.4em;
+      }
+
+      .prose :global(blockquote) {
+        margin: 1.4em 0;
+        padding: 0.9em 1em;
+        border-left: 3px solid var(--accent);
+        background: var(--accent-soft);
+        border-radius: 0 14px 14px 0;
+      }
+
+      .prose :global(img) {
+        max-width: 100%;
+        display: block;
+        border-radius: 18px;
+        margin: 22px auto;
+      }
+
+      .prose :global(a) {
+        color: var(--accent);
+      }
+
+      .locked-box {
+        max-width: 76ch;
+        margin: 0 auto;
+        padding: 24px;
+        border-radius: 22px;
+        background: var(--paid-bg);
+        border: 1px solid rgba(255, 79, 216, 0.18);
+      }
+
+      .locked-box strong {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 18px;
+      }
+
+      .locked-box p {
+        margin: 0;
+        line-height: 1.85;
+        color: var(--text);
+      }
+
+      .locked-actions {
+        margin-top: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .post-footer-nav {
+        max-width: 980px;
+        margin: 22px auto 0;
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      @media (max-width: 760px) {
+        .post-page {
+          padding: 20px 16px 68px;
+        }
+
+        .post-shell {
+          border-radius: 24px;
+        }
+
+        .post-hero,
+        .post-body {
+          padding-left: 18px;
+          padding-right: 18px;
+        }
+
+        .post-cover {
+          aspect-ratio: 16 / 10;
+          border-radius: 18px;
+        }
+
+        .prose {
+          font-size: 16px;
+          line-height: 1.95;
+        }
+      }
+    </style>
+  </Fragment>
+
+  <main class="post-page">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">首页</a>
+      <span>/</span>
+      <a href={`/country/${countrySlug}`}>{post.data.country}</a>
+      <span>/</span>
+      <span>{post.data.title}</span>
+    </nav>
+
+    <article class="post-shell">
+      <header class="post-hero">
+        {coverImage && (
+          <div class="post-cover">
+            <img src={coverImage} alt={post.data.title} />
+          </div>
+        )}
+
+        <div class="post-kicker">
+          {post.data.countryCode ? (
+            <span class={`fi fi-${post.data.countryCode.toLowerCase()}`}></span>
+          ) : post.data.icon ? (
+            <span>{post.data.icon}</span>
+          ) : (
+            <span>🌏</span>
+          )}
+
+          <span>{post.data.country} · {post.data.region}</span>
+          <span>·</span>
+          <span>
+            {`${new Date(post.data.date).getFullYear()}年${new Date(post.data.date).getMonth() + 1}月`}
+          </span>
+
+          <span class={`badge ${post.data.tier}`}>
+            {post.data.tier === 'free' ? '免费' : '付费'}
+          </span>
+        </div>
+
+        <h1>{post.data.title}</h1>
+
+        {post.data.summary && (
+          <p class="post-summary">{post.data.summary}</p>
+        )}
+
+        <div class="post-actions">
+          <a class="button button-secondary" href={`/country/${countrySlug}#${post.data.slug}`}>
+            返回国家页
+          </a>
+
+          {post.data.tier === 'paid' && !hasPaidAccess && (
+            <a class="button button-primary" href={currentUser ? '/pricing' : '/login'}>
+              {currentUser ? '前往订阅' : '登录后查看'}
+            </a>
+          )}
+        </div>
+      </header>
+
+      <div class="post-body">
+        {canReadFull ? (
+          <article class="prose">
+            <Content />
+          </article>
+        ) : (
+          <div class="locked-box">
+            <strong>
+              {currentUser ? '当前内容需要有效会员权限' : '当前内容需要登录后查看会员状态'}
+            </strong>
+
+            <p>
+              {currentUser
+                ? '你已登录，但当前账号没有有效会员记录，暂时只能查看摘要。开通后将自动解锁完整正文。'
+                : '这篇内容属于付费内容。请先登录，再根据你的会员状态自动判断是否解锁。'}
+            </p>
+
+            <div class="locked-actions">
+              {!currentUser ? (
+                <a class="button button-primary" href="/login">登录后查看</a>
+              ) : (
+                <a class="button button-primary" href="/pricing">前往订阅</a>
+              )}
+              <a class="button button-secondary" href="/account">我的账户</a>
+            </div>
+          </div>
+        )}
+      </div>
+    </article>
+
+    <div class="post-footer-nav">
+      <a class="button button-secondary" href={`/country/${countrySlug}`}>
+        查看 {post.data.country} 全部内容
+      </a>
+
+      <a class="button button-secondary" href="/">
+        返回首页
+      </a>
+    </div>
+  </main>
+</BaseLayout>
